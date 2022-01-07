@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package voi.protocgenevent.examples;
+option go_package = "github.com/voi-oss/protoc-gen-event/examples";
+
+import "pkg/options/descriptor.proto";
+
+message NotifyEvent {
+  string accountID = 1;
+  map<string, string> data = 2;
+}
+
+message CustomTopicEvent {
+  option (voi.event.options).topic_name = "some-topic";
+
+  string accountID = 1;
+  map<string, string> data = 2;
+}
+
+
+message NotAnEvent {
+  option (voi.event.options).skip = true;
+
+  string accountID = 1;
+  map<string, string> data = 2;
+}
