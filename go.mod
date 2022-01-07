@@ -1,4 +1,4 @@
-module github.com/voiapp/protoc-gen-event
+module github.com/voi-oss/protoc-gen-event
 
 go 1.15
 
