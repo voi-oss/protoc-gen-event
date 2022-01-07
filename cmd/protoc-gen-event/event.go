@@ -3,7 +3,7 @@ package main
 import (
 	"strings"
 
-	"github.com/voiapp/protoc-gen-event/pkg/options"
+	"github.com/voi-oss/protoc-gen-event/pkg/options"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
