@@ -17,10 +17,15 @@ message CustomTopicEvent {
   map<string, string> data = 2;
 }
 
-
 message NotAnEvent {
   option (voi.event.options).skip = true;
 
   string accountID = 1;
   map<string, string> data = 2;
+}
+
+message AttributeEvent {
+  string accountID = 1 [(voi.event.field).is_metadata = true];
+  string zoneID = 2 [(voi.event.field).is_metadata = true, (voi.event.field).name = "zone_id"];
+  map<string, string> data = 3;
 }
