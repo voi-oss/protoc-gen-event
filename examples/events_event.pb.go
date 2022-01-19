@@ -92,3 +92,47 @@ func (h *intCustomTopicEventHandler) Handle(m *message.Message) error {
 
 	return h.HandlerFunc(pe, m)
 }
+
+// Publish will JSON marshal and publish this on a publisher
+func (x *AttributeEvent) Publish(ctx context.Context, publisher message.Publisher) error {
+	b, err := protojson.Marshal(x)
+	if err != nil {
+		return err
+	}
+
+	msg := message.NewMessage(watermill.NewUUID(), b)
+	msg.Metadata.Set("AccountID", x.GetAccountID())
+	msg.Metadata.Set("zone_id", x.GetZoneID())
+	msg.SetContext(ctx)
+	if err := publisher.Publish("voi.protocgenevent.examples.AttributeEvent", msg); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Simple consumer wrapper
+type intAttributeEventHandler struct {
+	HandlerFunc func(pe *AttributeEvent, m *message.Message) error
+}
+
+func AttributeEventHandler(f func(pe *AttributeEvent, m *message.Message) error) *intAttributeEventHandler {
+	return &intAttributeEventHandler{
+		HandlerFunc: f,
+	}
+}
+
+func (h *intAttributeEventHandler) Topic() string {
+	return "voi.protocgenevent.examples.AttributeEvent"
+}
+
+func (h *intAttributeEventHandler) Handle(m *message.Message) error {
+	pe := &AttributeEvent{}
+	opts := protojson.UnmarshalOptions{
+		DiscardUnknown: true,
+	}
+	if err := opts.Unmarshal(m.Payload, pe); err != nil {
+		return err
+	}
+
+	return h.HandlerFunc(pe, m)
+}

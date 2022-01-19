@@ -25,6 +25,11 @@ type messageOptions struct {
 	skip  bool
 }
 
+type fieldOptions struct {
+	isMetadata bool
+	name       string
+}
+
 // generateFile generates a _grpc.pb.go file containing gRPC service definitions.
 func generateFile(gen *protogen.Plugin, file *protogen.File, config GeneratorConfig) *protogen.GeneratedFile {
 	if len(file.Messages) == 0 {
@@ -71,6 +76,15 @@ func generateEvent(g *protogen.GeneratedFile, message *protogen.Message, config 
 	g.P()
 
 	g.P("msg := message.NewMessage(", watermillPkg.Ident("NewUUID"), "()", ", b)")
+
+	for _, field := range message.Fields {
+		fo := getFieldOptions(field)
+		if !fo.isMetadata {
+			continue
+		}
+		g.P("msg.Metadata.Set(\"", fo.name, "\", x.Get", field.GoName, "())")
+	}
+
 	g.P("msg.SetContext(ctx)")
 
 	g.P("if err := publisher.Publish(\"", opts.topic, "\", msg); err != nil {")
@@ -129,4 +143,23 @@ func getOptions(message *protogen.Message, config GeneratorConfig) messageOption
 	}
 
 	return mo
+}
+
+func getFieldOptions(field *protogen.Field) fieldOptions {
+	fo := fieldOptions{
+		isMetadata: false,
+		name:       field.GoName,
+	}
+
+	msgOpts := field.Desc.Options().(*descriptorpb.FieldOptions)
+	opts := proto.GetExtension(msgOpts, options.E_Field).(*options.FieldOption)
+
+	if opts.GetIsMetadata() {
+		fo.isMetadata = opts.GetIsMetadata()
+	}
+	if opts.GetName() != "" {
+		fo.name = opts.GetName()
+	}
+
+	return fo
 }

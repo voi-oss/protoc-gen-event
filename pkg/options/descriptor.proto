@@ -13,3 +13,12 @@ message EventOption {
 extend google.protobuf.MessageOptions {
   EventOption options = 50142;
 }
+
+message FieldOption {
+  bool is_metadata = 1;
+  string name = 2;
+}
+
+extend google.protobuf.FieldOptions {
+  FieldOption field = 50924;
+}
