@@ -3,10 +3,11 @@ package main
 import (
 	"strings"
 
-	"github.com/voi-oss/protoc-gen-event/pkg/options"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
+
+	"github.com/voi-oss/protoc-gen-event/pkg/options"
 )
 
 const (
@@ -67,33 +68,38 @@ func generateEvent(g *protogen.GeneratedFile, message *protogen.Message, config 
 
 	g.P("// Publish will JSON marshal and publish this on a publisher")
 	g.Annotate(message.GoIdent.String()+".Publish", message.Location)
-	g.P("func (x *", message.GoIdent, ") Publish(ctx ", g.QualifiedGoIdent(contextPkg.Ident("Context")), ", publisher ", g.QualifiedGoIdent(messagePkg.Ident("Publisher")), ") error {")
-	g.P("b, err := ", g.QualifiedGoIdent(protoJSONPkg.Ident("Marshal")), "(x)")
+	g.P("func (e *", message.GoIdent, ") Publish(ctx ", g.QualifiedGoIdent(contextPkg.Ident("Context")), ", publisher ", g.QualifiedGoIdent(messagePkg.Ident("Publisher")), ") error {")
+	g.P("return e.PublishWithUUID(ctx, publisher, ", watermillPkg.Ident("NewUUID"), "()", ")")
+	g.P("}")
+
+	g.P()
+
+	g.P("// PublishWithUUID will JSON marshal and publish this on a publisher with the given UUID")
+	g.Annotate(message.GoIdent.String()+".PublishWithUUID", message.Location)
+	g.P("func (e *", message.GoIdent, ") PublishWithUUID(ctx ", g.QualifiedGoIdent(contextPkg.Ident("Context")), ", publisher ", g.QualifiedGoIdent(messagePkg.Ident("Publisher")), ", uuid string) error {")
+	g.P("payload, err := ", g.QualifiedGoIdent(protoJSONPkg.Ident("Marshal")), "(x)")
 	g.P("if err != nil {")
 	g.P("return err")
 	g.P("}")
 
 	g.P()
 
-	g.P("msg := message.NewMessage(", watermillPkg.Ident("NewUUID"), "()", ", b)")
+	g.P("msg := message.NewMessage(uuid, payload)")
 
 	for _, field := range message.Fields {
 		fo := getFieldOptions(field)
 		if !fo.isMetadata {
 			continue
 		}
-		g.P("msg.Metadata.Set(\"", fo.name, "\", x.Get", field.GoName, "())")
+		g.P("msg.Metadata.Set(\"", fo.name, "\", e.Get", field.GoName, "())")
 	}
 
 	g.P("msg.SetContext(ctx)")
-
-	g.P("if err := publisher.Publish(\"", opts.topic, "\", msg); err != nil {")
-	g.P("return err")
-	g.P("}")
-	g.P("return nil")
-	g.P("}")
-
 	g.P()
+
+	g.P("return publisher.Publish(\"", opts.topic, "\", msg)")
+	g.P("}")
+
 	g.P()
 
 	g.P("// Simple consumer wrapper")
