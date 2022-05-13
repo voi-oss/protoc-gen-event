@@ -77,7 +77,7 @@ func generateEvent(g *protogen.GeneratedFile, message *protogen.Message, config 
 	g.P("// PublishWithUUID will JSON marshal and publish this on a publisher with the given UUID")
 	g.Annotate(message.GoIdent.String()+".PublishWithUUID", message.Location)
 	g.P("func (e *", message.GoIdent, ") PublishWithUUID(ctx ", g.QualifiedGoIdent(contextPkg.Ident("Context")), ", publisher ", g.QualifiedGoIdent(messagePkg.Ident("Publisher")), ", uuid string) error {")
-	g.P("payload, err := ", g.QualifiedGoIdent(protoJSONPkg.Ident("Marshal")), "(x)")
+	g.P("payload, err := ", g.QualifiedGoIdent(protoJSONPkg.Ident("Marshal")), "(e)")
 	g.P("if err != nil {")
 	g.P("return err")
 	g.P("}")
