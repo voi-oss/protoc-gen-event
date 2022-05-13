@@ -10,18 +10,21 @@ import (
 )
 
 // Publish will JSON marshal and publish this on a publisher
-func (x *NotifyEvent) Publish(ctx context.Context, publisher message.Publisher) error {
-	b, err := protojson.Marshal(x)
+func (e *NotifyEvent) Publish(ctx context.Context, publisher message.Publisher) error {
+	return e.PublishWithUUID(ctx, publisher, watermill.NewUUID())
+}
+
+// PublishWithUUID will JSON marshal and publish this on a publisher with the given UUID
+func (e *NotifyEvent) PublishWithUUID(ctx context.Context, publisher message.Publisher, uuid string) error {
+	payload, err := protojson.Marshal(x)
 	if err != nil {
 		return err
 	}
 
-	msg := message.NewMessage(watermill.NewUUID(), b)
+	msg := message.NewMessage(uuid, payload)
 	msg.SetContext(ctx)
-	if err := publisher.Publish("voi.protocgenevent.examples.NotifyEvent", msg); err != nil {
-		return err
-	}
-	return nil
+
+	return publisher.Publish("voi.protocgenevent.examples.NotifyEvent", msg)
 }
 
 // Simple consumer wrapper
@@ -52,18 +55,21 @@ func (h *intNotifyEventHandler) Handle(m *message.Message) error {
 }
 
 // Publish will JSON marshal and publish this on a publisher
-func (x *CustomTopicEvent) Publish(ctx context.Context, publisher message.Publisher) error {
-	b, err := protojson.Marshal(x)
+func (e *CustomTopicEvent) Publish(ctx context.Context, publisher message.Publisher) error {
+	return e.PublishWithUUID(ctx, publisher, watermill.NewUUID())
+}
+
+// PublishWithUUID will JSON marshal and publish this on a publisher with the given UUID
+func (e *CustomTopicEvent) PublishWithUUID(ctx context.Context, publisher message.Publisher, uuid string) error {
+	payload, err := protojson.Marshal(x)
 	if err != nil {
 		return err
 	}
 
-	msg := message.NewMessage(watermill.NewUUID(), b)
+	msg := message.NewMessage(uuid, payload)
 	msg.SetContext(ctx)
-	if err := publisher.Publish("some-topic", msg); err != nil {
-		return err
-	}
-	return nil
+
+	return publisher.Publish("some-topic", msg)
 }
 
 // Simple consumer wrapper
@@ -94,20 +100,23 @@ func (h *intCustomTopicEventHandler) Handle(m *message.Message) error {
 }
 
 // Publish will JSON marshal and publish this on a publisher
-func (x *AttributeEvent) Publish(ctx context.Context, publisher message.Publisher) error {
-	b, err := protojson.Marshal(x)
+func (e *AttributeEvent) Publish(ctx context.Context, publisher message.Publisher) error {
+	return e.PublishWithUUID(ctx, publisher, watermill.NewUUID())
+}
+
+// PublishWithUUID will JSON marshal and publish this on a publisher with the given UUID
+func (e *AttributeEvent) PublishWithUUID(ctx context.Context, publisher message.Publisher, uuid string) error {
+	payload, err := protojson.Marshal(x)
 	if err != nil {
 		return err
 	}
 
-	msg := message.NewMessage(watermill.NewUUID(), b)
-	msg.Metadata.Set("AccountID", x.GetAccountID())
-	msg.Metadata.Set("zone_id", x.GetZoneID())
+	msg := message.NewMessage(uuid, payload)
+	msg.Metadata.Set("AccountID", e.GetAccountID())
+	msg.Metadata.Set("zone_id", e.GetZoneID())
 	msg.SetContext(ctx)
-	if err := publisher.Publish("voi.protocgenevent.examples.AttributeEvent", msg); err != nil {
-		return err
-	}
-	return nil
+
+	return publisher.Publish("voi.protocgenevent.examples.AttributeEvent", msg)
 }
 
 // Simple consumer wrapper
