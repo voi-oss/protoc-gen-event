@@ -1,6 +1,6 @@
 # Contributing Guidelines
 
-svc project is [Apache licensed](LICENSE) and accepts contributions via
+`protoc-gen-event` is [Apache licensed](LICENSE) and accepts contributions via
 GitHub pull requests. This document outlines some of the conventions on
 development workflow, commit message formatting, contact points, and other
 resources to make it easier to get your contribution accepted.
