@@ -16,7 +16,7 @@ func (e *NotifyEvent) Publish(ctx context.Context, publisher message.Publisher) 
 
 // PublishWithUUID will JSON marshal and publish this on a publisher with the given UUID
 func (e *NotifyEvent) PublishWithUUID(ctx context.Context, publisher message.Publisher, uuid string) error {
-	payload, err := protojson.Marshal(x)
+	payload, err := protojson.Marshal(e)
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func (e *CustomTopicEvent) Publish(ctx context.Context, publisher message.Publis
 
 // PublishWithUUID will JSON marshal and publish this on a publisher with the given UUID
 func (e *CustomTopicEvent) PublishWithUUID(ctx context.Context, publisher message.Publisher, uuid string) error {
-	payload, err := protojson.Marshal(x)
+	payload, err := protojson.Marshal(e)
 	if err != nil {
 		return err
 	}
@@ -106,7 +106,7 @@ func (e *AttributeEvent) Publish(ctx context.Context, publisher message.Publishe
 
 // PublishWithUUID will JSON marshal and publish this on a publisher with the given UUID
 func (e *AttributeEvent) PublishWithUUID(ctx context.Context, publisher message.Publisher, uuid string) error {
-	payload, err := protojson.Marshal(x)
+	payload, err := protojson.Marshal(e)
 	if err != nil {
 		return err
 	}
