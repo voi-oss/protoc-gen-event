@@ -1,13 +1,15 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"strings"
 
+	"github.com/voi-oss/protoc-gen-event/pkg/options"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
-
-	"github.com/voi-oss/protoc-gen-event/pkg/options"
 )
 
 const (
@@ -17,8 +19,56 @@ const (
 	protoJSONPkg = protogen.GoImportPath("google.golang.org/protobuf/encoding/protojson")
 )
 
+type RequiredField struct {
+	Name string
+	Type string
+}
+
+func (field RequiredField) CanonicalRef() string {
+	return field.Type + ":" + field.Name
+}
+
+type RequiredFields []RequiredField
+
+func (fields RequiredFields) EnsureCompliance(message *protogen.Message) error {
+	// Map of required fields we will be looking for
+	fieldsMap := make(map[string]RequiredField)
+	for _, field := range fields {
+		fieldsMap[field.CanonicalRef()] = field
+	}
+
+	// Check every field in the given message against the map of required fields
+	for _, msgField := range message.Fields {
+		var fieldType string
+		if msgField.Desc.Kind() == protoreflect.MessageKind {
+			fieldType = string(msgField.Desc.Message().FullName())
+		} else {
+			fieldType = msgField.Desc.Kind().String()
+		}
+
+		canonicalRef := fieldType + ":" + string(msgField.Desc.Name())
+
+		delete(fieldsMap, canonicalRef)
+	}
+
+	// We found all the required fields
+	if len(fieldsMap) == 0 {
+		return nil
+	}
+
+	sourceFilePath := message.Location.SourceFile
+	messageName := message.Desc.Name()
+
+	for _, requiredField := range fieldsMap {
+		fmt.Fprintf(os.Stderr, "%s: Required field missing in message '%s', expected field '%s' with type '%s'.\n", sourceFilePath, messageName, requiredField.Name, requiredField.Type)
+	}
+
+	return fmt.Errorf("some required fields are missing")
+}
+
 type GeneratorConfig struct {
-	Suffix string
+	Suffix         string
+	RequiredFields RequiredFields
 }
 
 type messageOptions struct {
@@ -32,9 +82,9 @@ type fieldOptions struct {
 }
 
 // generateFile generates a _grpc.pb.go file containing gRPC service definitions.
-func generateFile(gen *protogen.Plugin, file *protogen.File, config GeneratorConfig) *protogen.GeneratedFile {
+func generateFile(gen *protogen.Plugin, file *protogen.File, config GeneratorConfig) (*protogen.GeneratedFile, error) {
 	if len(file.Messages) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	generated := gen.NewGeneratedFile(file.GeneratedFilenamePrefix+"_event.pb.go", file.GoImportPath)
@@ -43,27 +93,37 @@ func generateFile(gen *protogen.Plugin, file *protogen.File, config GeneratorCon
 	generated.P("package ", file.GoPackageName)
 	generated.P()
 
-	generateFileContent(file, generated, config)
+	if err := generateFileContent(file, generated, config); err != nil {
+		return nil, err
+	}
 
-	return generated
+	return generated, nil
 }
 
 // generateFileContent generates events definitions, excluding the package statement.
-func generateFileContent(file *protogen.File, g *protogen.GeneratedFile, config GeneratorConfig) {
+func generateFileContent(file *protogen.File, g *protogen.GeneratedFile, config GeneratorConfig) error {
 	if len(file.Messages) == 0 {
-		return
+		return nil
 	}
 
 	for _, message := range file.Messages {
-		generateEvent(g, message, config)
+		if err := generateEvent(g, message, config); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 // generateEvent generates the functions needed to integrate an event with Watermill.
-func generateEvent(g *protogen.GeneratedFile, message *protogen.Message, config GeneratorConfig) {
+func generateEvent(g *protogen.GeneratedFile, message *protogen.Message, config GeneratorConfig) error {
 	opts := getOptions(message, config)
 	if opts.skip {
-		return
+		return nil
+	}
+
+	if err := config.RequiredFields.EnsureCompliance(message); err != nil {
+		return err
 	}
 
 	g.P("// Publish will JSON marshal and publish this on a publisher")
@@ -130,6 +190,8 @@ func generateEvent(g *protogen.GeneratedFile, message *protogen.Message, config 
 	g.P()
 	g.P("return h.HandlerFunc(pe, m)")
 	g.P("}")
+
+	return nil
 }
 
 func getOptions(message *protogen.Message, config GeneratorConfig) messageOptions {

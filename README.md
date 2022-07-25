@@ -1,11 +1,11 @@
 # protoc-gen-event
 
 `protoc-gen-event` is a [`protoc`](https://grpc.io/docs/protoc-installation/) plugin to make publishing *proto-defined*
-events easier. 
+events easier.
 
 * events are described with proto files
 * Go code representing the events is generated
-* Watermill publication and consumption functions are generated 
+* Watermill publication and consumption functions are generated
 
 ## How to use
 
@@ -18,12 +18,17 @@ events easier.
 Check the [`./examples/`](./examples) folder to see how events are defined and generate the associated Go code with:
 
 ```
-go build -o protoc-gen-event ./cmd/protoc-gen-event/*
-protoc --plugin ./protoc-gen-event -I . -I /usr/include --event_out=paths=source_relative:. --go_out=paths=source_relative:. ./examples/events.proto
+go build -o ~/bin/protoc-gen-event ./cmd/protoc-gen-event/* &&
+protoc -I . -I /usr/include \
+    --event_out=. \
+    --event_opt=suffixMatch=Event,requiredFields=string:messageID+google.protobuf.Timestamp:generatedAt,paths=source_relative \
+    --go_out=paths=source_relative:. \
+    ./examples/events.proto
 ```
 
 ### Parameters
-`protoc --event_out=sufficMatch=EventMatchSuffix,paths=source_relative:.`
+
+`protoc --event_out=. --event_opt=sufficMatch=EventMatchSuffix,paths=source_relative`
 
 ## Development
 
