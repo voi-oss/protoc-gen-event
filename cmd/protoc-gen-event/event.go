@@ -77,8 +77,9 @@ type messageOptions struct {
 }
 
 type fieldOptions struct {
-	isMetadata bool
-	name       string
+	isMetadata      bool
+	name            string
+	injectMessageID bool
 }
 
 // generateFile generates a _grpc.pb.go file containing gRPC service definitions.
@@ -134,9 +135,25 @@ func generateEvent(g *protogen.GeneratedFile, message *protogen.Message, config 
 
 	g.P()
 
+	g.P("// injectMessageID will inject the given message UUID into all fields marked with the `inject_message_id` option")
+	g.Annotate(message.GoIdent.String()+".injectMessageID", message.Location)
+	g.P("func (e *", message.GoIdent, ") injectMessageID(uuid string) {")
+	for _, field := range message.Fields {
+		fo := getFieldOptions(field)
+		if !fo.injectMessageID {
+			continue
+		}
+		g.P("e.", fo.name, " = uuid")
+	}
+	g.P("}")
+
+	g.P()
+
 	g.P("// PublishWithUUID will JSON marshal and publish this on a publisher with the given UUID")
 	g.Annotate(message.GoIdent.String()+".PublishWithUUID", message.Location)
 	g.P("func (e *", message.GoIdent, ") PublishWithUUID(ctx ", g.QualifiedGoIdent(contextPkg.Ident("Context")), ", publisher ", g.QualifiedGoIdent(messagePkg.Ident("Publisher")), ", uuid string) error {")
+	g.P("e.injectMessageID(uuid)")
+	g.P()
 	g.P("payload, err := ", g.QualifiedGoIdent(protoJSONPkg.Ident("Marshal")), "(e)")
 	g.P("if err != nil {")
 	g.P("return err")
@@ -215,8 +232,9 @@ func getOptions(message *protogen.Message, config GeneratorConfig) messageOption
 
 func getFieldOptions(field *protogen.Field) fieldOptions {
 	fo := fieldOptions{
-		isMetadata: false,
-		name:       field.GoName,
+		isMetadata:      false,
+		injectMessageID: false,
+		name:            field.GoName,
 	}
 
 	msgOpts := field.Desc.Options().(*descriptorpb.FieldOptions)
@@ -224,6 +242,9 @@ func getFieldOptions(field *protogen.Field) fieldOptions {
 
 	if opts.GetIsMetadata() {
 		fo.isMetadata = opts.GetIsMetadata()
+	}
+	if opts.GetInjectMessageId() {
+		fo.injectMessageID = opts.GetInjectMessageId()
 	}
 	if opts.GetName() != "" {
 		fo.name = opts.GetName()

@@ -17,6 +17,7 @@ extend google.protobuf.MessageOptions {
 message FieldOption {
   bool is_metadata = 1;
   string name = 2;
+  bool inject_message_id = 3;
 }
 
 extend google.protobuf.FieldOptions {
