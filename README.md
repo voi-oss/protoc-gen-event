@@ -14,7 +14,7 @@ events easier.
 Download `protoc-gen-event` and make sure it is available in your PATH:
 
 ```
-go install github.com/voi-oss/protoc-gen-event
+go install github.com/voi-oss/protoc-gen-event/cmd/protoc-gen-event@latest
 ```
 
 ### Usage
