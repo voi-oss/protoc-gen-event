@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/types/pluginpb"
@@ -41,27 +40,4 @@ func main() {
 
 		return nil
 	})
-}
-
-func parseRequiredFieldsFlag(flagInput string) []RequiredField {
-	if flagInput == "" {
-		return nil
-	}
-
-	fields := strings.Split(flagInput, "+")
-	requiredFields := make([]RequiredField, 0, len(fields))
-
-	for _, field := range fields {
-		parts := strings.Split(field, ":")
-		if len(parts) != 2 {
-			continue
-		}
-
-		requiredFields = append(requiredFields, RequiredField{
-			Type: parts[0],
-			Name: parts[1],
-		})
-	}
-
-	return requiredFields
 }

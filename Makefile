@@ -4,4 +4,4 @@ lint:
 
 PHONY: tests
 tests:
-	echo "@TODO"
+	go test -v ./...
