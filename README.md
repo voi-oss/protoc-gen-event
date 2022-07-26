@@ -11,17 +11,20 @@ events easier.
 
 ### Installation
 
-`go get github.com/voi-oss/protoc-gen-event`
+Download `protoc-gen-event` and make sure it is available in your PATH:
 
-### Generating the code
+```
+go install github.com/voi-oss/protoc-gen-event
+```
+
+### Usage
 
 Check the [`./examples/`](./examples) folder to see how events are defined and generate the associated Go code with:
 
 ```
-go build -o ~/bin/protoc-gen-event ./cmd/protoc-gen-event/* &&
 protoc -I . -I /usr/include \
     --event_out=. \
-    --event_opt=suffixMatch=Event,requiredFields=string:messageID+google.protobuf.Timestamp:generatedAt,paths=source_relative \
+    --event_opt=suffixMatch=Event,paths=source_relative \
     --go_out=paths=source_relative:. \
     ./examples/events.proto
 ```
@@ -35,8 +38,23 @@ protoc -I . -I /usr/include \
 ### Building the event options type
 
 ```
-go build -o protoc-gen-event ./cmd/protoc-gen-event/*
-protoc --plugin ./protoc-gen-event -I . -I /usr/include --go_out=paths=source_relative:. ./pkg/options/descriptor.proto
+go build -o protoc-gen-event ./cmd/protoc-gen-event/* &&
+protoc -I . -I /usr/include \
+    --plugin protoc-gen-event=./protoc-gen-event \
+    --go_out=paths=source_relative:. \
+    ./pkg/options/descriptor.proto
+```
+
+### Running protoc-gen-event
+
+```
+go build -o protoc-gen-event ./cmd/protoc-gen-event/* &&
+protoc -I . -I /usr/include \
+    --plugin protoc-gen-event=./protoc-gen-event \
+    --event_out=. \
+    --event_opt=suffixMatch=Event,requiredFields=string:messageID+google.protobuf.Timestamp:generatedAt,paths=source_relative \
+    --go_out=paths=source_relative:. \
+    ./examples/events.proto
 ```
 
 ## Contributions
