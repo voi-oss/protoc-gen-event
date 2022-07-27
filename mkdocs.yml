@@ -1,0 +1,11 @@
+site_name: 'protoc-gen-event'
+site_description: 'protoc plugin to publish protobuf messages with Watermill '
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - 'Defining events': defining-events.md
+  - 'Development': development.md
+
+plugins:
+  - techdocs-core
