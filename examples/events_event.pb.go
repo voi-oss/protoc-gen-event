@@ -23,6 +23,12 @@ func (e *NotifyEvent) injectMessageID(uuid string) {
 func (e *NotifyEvent) PublishWithUUID(ctx context.Context, publisher message.Publisher, uuid string) error {
 	e.injectMessageID(uuid)
 
+	if v, ok := interface{}(e).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return err
+		}
+	}
+
 	payload, err := protojson.Marshal(e)
 	if err != nil {
 		return err
@@ -126,6 +132,12 @@ func (e *AttributeEvent) injectMessageID(uuid string) {
 // PublishWithUUID will JSON marshal and publish this on a publisher with the given UUID
 func (e *AttributeEvent) PublishWithUUID(ctx context.Context, publisher message.Publisher, uuid string) error {
 	e.injectMessageID(uuid)
+
+	if v, ok := interface{}(e).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return err
+		}
+	}
 
 	payload, err := protojson.Marshal(e)
 	if err != nil {

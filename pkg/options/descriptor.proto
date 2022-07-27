@@ -8,6 +8,7 @@ import "google/protobuf/descriptor.proto";
 message EventOption {
   string topic_name = 1;
   bool skip = 2;
+  bool no_message_validation = 3;
 }
 
 extend google.protobuf.MessageOptions {

@@ -72,8 +72,9 @@ type GeneratorConfig struct {
 }
 
 type messageOptions struct {
-	topic string
-	skip  bool
+	topic             string
+	skip              bool
+	messageValidation bool
 }
 
 type fieldOptions struct {
@@ -152,8 +153,22 @@ func generateEvent(g *protogen.GeneratedFile, message *protogen.Message, config 
 	g.P("// PublishWithUUID will JSON marshal and publish this on a publisher with the given UUID")
 	g.Annotate(message.GoIdent.String()+".PublishWithUUID", message.Location)
 	g.P("func (e *", message.GoIdent, ") PublishWithUUID(ctx ", g.QualifiedGoIdent(contextPkg.Ident("Context")), ", publisher ", g.QualifiedGoIdent(messagePkg.Ident("Publisher")), ", uuid string) error {")
+
+	// messageID injection
 	g.P("e.injectMessageID(uuid)")
 	g.P()
+
+	// if available: message validation
+	if opts.messageValidation {
+		g.P("if v, ok := interface{}(e).(interface{ Validate() error }); ok {")
+		g.P("if err := v.Validate(); err != nil {")
+		g.P("return err")
+		g.P("}")
+		g.P("}")
+		g.P()
+	}
+
+	// payload marshalling
 	g.P("payload, err := ", g.QualifiedGoIdent(protoJSONPkg.Ident("Marshal")), "(e)")
 	g.P("if err != nil {")
 	g.P("return err")
@@ -161,6 +176,7 @@ func generateEvent(g *protogen.GeneratedFile, message *protogen.Message, config 
 
 	g.P()
 
+	// message publication
 	g.P("msg := message.NewMessage(uuid, payload)")
 
 	for _, field := range message.Fields {
@@ -213,8 +229,9 @@ func generateEvent(g *protogen.GeneratedFile, message *protogen.Message, config 
 
 func getOptions(message *protogen.Message, config GeneratorConfig) messageOptions {
 	mo := messageOptions{
-		topic: string(message.Desc.FullName()),
-		skip:  !strings.HasSuffix(string(message.Desc.Name()), config.Suffix),
+		topic:             string(message.Desc.FullName()),
+		skip:              !strings.HasSuffix(string(message.Desc.Name()), config.Suffix),
+		messageValidation: true,
 	}
 
 	msgOpts := message.Desc.Options().(*descriptorpb.MessageOptions)
@@ -226,6 +243,7 @@ func getOptions(message *protogen.Message, config GeneratorConfig) messageOption
 	if opts.GetSkip() {
 		mo.skip = opts.GetSkip()
 	}
+	mo.messageValidation = !opts.GetNoMessageValidation()
 
 	return mo
 }
