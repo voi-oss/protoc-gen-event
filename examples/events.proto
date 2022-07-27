@@ -16,6 +16,7 @@ message NotifyEvent {
 
 message CustomTopicEvent {
   option (voi.event.options).topic_name = "some-topic";
+  option (voi.event.options).no_message_validation = true;
 
   string accountID = 1;
   map<string, string> data = 2;
