@@ -1,13 +1,15 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"strings"
 
+	"github.com/voi-oss/protoc-gen-event/pkg/options"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
-
-	"github.com/voi-oss/protoc-gen-event/pkg/options"
 )
 
 const (
@@ -17,8 +19,56 @@ const (
 	protoJSONPkg = protogen.GoImportPath("google.golang.org/protobuf/encoding/protojson")
 )
 
+type requiredField struct {
+	Name string
+	Type string
+}
+
+func (field requiredField) CanonicalRef() string {
+	return field.Type + ":" + field.Name
+}
+
+type requiredFields []requiredField
+
+func (fields requiredFields) EnsureCompliance(message *protogen.Message) error {
+	// Map of required fields we will be looking for
+	fieldsMap := make(map[string]requiredField)
+	for _, field := range fields {
+		fieldsMap[field.CanonicalRef()] = field
+	}
+
+	// Check every field in the given message against the map of required fields
+	for _, msgField := range message.Fields {
+		var fieldType string
+		if msgField.Desc.Kind() == protoreflect.MessageKind {
+			fieldType = string(msgField.Desc.Message().FullName())
+		} else {
+			fieldType = msgField.Desc.Kind().String()
+		}
+
+		canonicalRef := fieldType + ":" + string(msgField.Desc.Name())
+
+		delete(fieldsMap, canonicalRef)
+	}
+
+	// We found all the required fields
+	if len(fieldsMap) == 0 {
+		return nil
+	}
+
+	sourceFilePath := message.Location.SourceFile
+	messageName := message.Desc.Name()
+
+	for _, requiredField := range fieldsMap {
+		fmt.Fprintf(os.Stderr, "%s: Required field missing in message '%s', expected field '%s' with type '%s'.\n", sourceFilePath, messageName, requiredField.Name, requiredField.Type)
+	}
+
+	return fmt.Errorf("some required fields are missing")
+}
+
 type GeneratorConfig struct {
-	Suffix string
+	Suffix         string
+	RequiredFields requiredFields
 }
 
 type messageOptions struct {
@@ -27,14 +77,15 @@ type messageOptions struct {
 }
 
 type fieldOptions struct {
-	isMetadata bool
-	name       string
+	isMetadata      bool
+	name            string
+	injectMessageID bool
 }
 
 // generateFile generates a _grpc.pb.go file containing gRPC service definitions.
-func generateFile(gen *protogen.Plugin, file *protogen.File, config GeneratorConfig) *protogen.GeneratedFile {
+func generateFile(gen *protogen.Plugin, file *protogen.File, config GeneratorConfig) (*protogen.GeneratedFile, error) {
 	if len(file.Messages) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	generated := gen.NewGeneratedFile(file.GeneratedFilenamePrefix+"_event.pb.go", file.GoImportPath)
@@ -43,27 +94,37 @@ func generateFile(gen *protogen.Plugin, file *protogen.File, config GeneratorCon
 	generated.P("package ", file.GoPackageName)
 	generated.P()
 
-	generateFileContent(file, generated, config)
+	if err := generateFileContent(file, generated, config); err != nil {
+		return nil, err
+	}
 
-	return generated
+	return generated, nil
 }
 
 // generateFileContent generates events definitions, excluding the package statement.
-func generateFileContent(file *protogen.File, g *protogen.GeneratedFile, config GeneratorConfig) {
+func generateFileContent(file *protogen.File, g *protogen.GeneratedFile, config GeneratorConfig) error {
 	if len(file.Messages) == 0 {
-		return
+		return nil
 	}
 
 	for _, message := range file.Messages {
-		generateEvent(g, message, config)
+		if err := generateEvent(g, message, config); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 // generateEvent generates the functions needed to integrate an event with Watermill.
-func generateEvent(g *protogen.GeneratedFile, message *protogen.Message, config GeneratorConfig) {
+func generateEvent(g *protogen.GeneratedFile, message *protogen.Message, config GeneratorConfig) error {
 	opts := getOptions(message, config)
 	if opts.skip {
-		return
+		return nil
+	}
+
+	if err := config.RequiredFields.EnsureCompliance(message); err != nil {
+		return err
 	}
 
 	g.P("// Publish will JSON marshal and publish this on a publisher")
@@ -74,9 +135,25 @@ func generateEvent(g *protogen.GeneratedFile, message *protogen.Message, config 
 
 	g.P()
 
+	g.P("// injectMessageID will inject the given message UUID into all fields marked with the `inject_message_id` option")
+	g.Annotate(message.GoIdent.String()+".injectMessageID", message.Location)
+	g.P("func (e *", message.GoIdent, ") injectMessageID(uuid string) {")
+	for _, field := range message.Fields {
+		fo := getFieldOptions(field)
+		if !fo.injectMessageID {
+			continue
+		}
+		g.P("e.", fo.name, " = uuid")
+	}
+	g.P("}")
+
+	g.P()
+
 	g.P("// PublishWithUUID will JSON marshal and publish this on a publisher with the given UUID")
 	g.Annotate(message.GoIdent.String()+".PublishWithUUID", message.Location)
 	g.P("func (e *", message.GoIdent, ") PublishWithUUID(ctx ", g.QualifiedGoIdent(contextPkg.Ident("Context")), ", publisher ", g.QualifiedGoIdent(messagePkg.Ident("Publisher")), ", uuid string) error {")
+	g.P("e.injectMessageID(uuid)")
+	g.P()
 	g.P("payload, err := ", g.QualifiedGoIdent(protoJSONPkg.Ident("Marshal")), "(e)")
 	g.P("if err != nil {")
 	g.P("return err")
@@ -130,6 +207,8 @@ func generateEvent(g *protogen.GeneratedFile, message *protogen.Message, config 
 	g.P()
 	g.P("return h.HandlerFunc(pe, m)")
 	g.P("}")
+
+	return nil
 }
 
 func getOptions(message *protogen.Message, config GeneratorConfig) messageOptions {
@@ -153,8 +232,9 @@ func getOptions(message *protogen.Message, config GeneratorConfig) messageOption
 
 func getFieldOptions(field *protogen.Field) fieldOptions {
 	fo := fieldOptions{
-		isMetadata: false,
-		name:       field.GoName,
+		isMetadata:      false,
+		injectMessageID: false,
+		name:            field.GoName,
 	}
 
 	msgOpts := field.Desc.Options().(*descriptorpb.FieldOptions)
@@ -162,6 +242,9 @@ func getFieldOptions(field *protogen.Field) fieldOptions {
 
 	if opts.GetIsMetadata() {
 		fo.isMetadata = opts.GetIsMetadata()
+	}
+	if opts.GetInjectMessageId() {
+		fo.injectMessageID = opts.GetInjectMessageId()
 	}
 	if opts.GetName() != "" {
 		fo.name = opts.GetName()

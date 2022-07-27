@@ -4,10 +4,14 @@ package voi.protocgenevent.examples;
 option go_package = "github.com/voi-oss/protoc-gen-event/examples";
 
 import "pkg/options/descriptor.proto";
+import "google/protobuf/timestamp.proto";
 
 message NotifyEvent {
   string accountID = 1;
   map<string, string> data = 2;
+
+  string messageID = 3 [(voi.event.field).inject_message_id = true];
+  google.protobuf.Timestamp generatedAt = 4;
 }
 
 message CustomTopicEvent {
@@ -15,6 +19,9 @@ message CustomTopicEvent {
 
   string accountID = 1;
   map<string, string> data = 2;
+
+  string messageID = 3 [(voi.event.field).inject_message_id = true];
+  google.protobuf.Timestamp generatedAt = 4;
 }
 
 message NotAnEvent {
@@ -28,4 +35,7 @@ message AttributeEvent {
   string accountID = 1 [(voi.event.field).is_metadata = true];
   string zoneID = 2 [(voi.event.field).is_metadata = true, (voi.event.field).name = "zone_id"];
   map<string, string> data = 3;
+
+  string messageID = 4 [(voi.event.field).inject_message_id = true];
+  google.protobuf.Timestamp generatedAt = 5;
 }
