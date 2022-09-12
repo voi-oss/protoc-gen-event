@@ -5,6 +5,7 @@ nav:
   - Home: index.md
   - Installation: installation.md
   - 'Defining events': defining-events.md
+  - 'Enforcing validation rules': enforcing-validation-rules.md
   - 'Development': development.md
 
 plugins:

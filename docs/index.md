@@ -8,7 +8,7 @@
 
 * [Defining events](./defining-events.md)
 * Declaring "required fields"
-* Enforcing events validation rules
+* [Enforcing events validation rules](./enforcing-validation-rules.md)
 
 ## Development
 
