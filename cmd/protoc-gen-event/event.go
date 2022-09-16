@@ -83,9 +83,25 @@ type fieldOptions struct {
 	injectMessageID bool
 }
 
-// generateFile generates a _grpc.pb.go file containing gRPC service definitions.
-func generateFile(gen *protogen.Plugin, file *protogen.File, config GeneratorConfig) (*protogen.GeneratedFile, error) {
+// fileHasEvents checks if the given file has events that need to be generated.
+func fileHasEvents(file *protogen.File, config GeneratorConfig) bool {
 	if len(file.Messages) == 0 {
+		return false
+	}
+
+	for _, message := range file.Messages {
+		opts := getOptions(message, config)
+		if !opts.skip {
+			return true
+		}
+	}
+
+	return false
+}
+
+// generateFile generates a _event.pb.go file containing gRPC service definitions.
+func generateFile(gen *protogen.Plugin, file *protogen.File, config GeneratorConfig) (*protogen.GeneratedFile, error) {
+	if !fileHasEvents(file, config) {
 		return nil, nil
 	}
 
