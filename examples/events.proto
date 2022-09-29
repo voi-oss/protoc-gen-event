@@ -7,7 +7,7 @@ import "pkg/options/descriptor.proto";
 import "google/protobuf/timestamp.proto";
 
 message NotifyEvent {
-  string accountID = 1;
+  string accountID = 1 [(voi.event.field).account_id = ACCOUNT_RIDER];
   map<string, string> data = 2;
 
   string messageID = 3 [(voi.event.field).inject_message_id = true];
@@ -18,7 +18,7 @@ message CustomTopicEvent {
   option (voi.event.options).topic_name = "some-topic";
   option (voi.event.options).no_message_validation = true;
 
-  string accountID = 1;
+  string accountID = 1 [(voi.event.field).account_id = ACCOUNT_OTHER];
   map<string, string> data = 2;
 
   string messageID = 3 [(voi.event.field).inject_message_id = true];
