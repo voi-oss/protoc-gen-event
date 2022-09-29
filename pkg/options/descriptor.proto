@@ -17,28 +17,30 @@ extend google.protobuf.MessageOptions {
 
 // PIICategory describes the type of PII contained in a field.
 enum PIICategory {
-  PII_OTHER = 0;
-  PII_NAME = 1;
-  PII_EMAIL = 2;
-  PII_PHONE = 3;
-  PII_IP = 4;
-  PII_DEVICE_ID = 5;
-  PII_DOCUMENT_NUMBER = 6;
+  PII_NONE = 0;
+  PII_OTHER = 1;
+  PII_NAME = 2;
+  PII_EMAIL = 3;
+  PII_PHONE = 4;
+  PII_IP = 5;
+  PII_DEVICE_ID = 6;
+  PII_DOCUMENT_NUMBER = 7;
 }
 
 // AccountType describes a user category.
 enum AccountType {
-  ACCOUNT_OTHER = 0;
-  ACCOUNT_RIDER = 1;
-  ACCOUNT_HUNTER = 2;
+  ACCOUNT_NONE = 0;
+  ACCOUNT_OTHER = 1;
+  ACCOUNT_RIDER = 2;
+  ACCOUNT_HUNTER = 3;
 }
 
 message FieldOption {
   bool is_metadata = 1;
   string name = 2;
   bool inject_message_id = 3;
-  optional PIICategory pii = 4;
-  optional AccountType account_id = 5;
+  PIICategory pii = 4;
+  AccountType account_id = 5;
 }
 
 extend google.protobuf.FieldOptions {
