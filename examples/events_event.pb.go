@@ -7,6 +7,7 @@ import (
 	watermill "github.com/ThreeDotsLabs/watermill"
 	message "github.com/ThreeDotsLabs/watermill/message"
 	protojson "google.golang.org/protobuf/encoding/protojson"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Publish will JSON marshal and publish this on a publisher
@@ -19,9 +20,14 @@ func (e *NotifyEvent) injectMessageID(uuid string) {
 	e.MessageID = uuid
 }
 
+// injectPublishTimestamp will inject the given "published_at" timestamp into all fields marked with the `inject_publish_time` option
+func (e *NotifyEvent) injectPublishTimestamp(publishedAt *timestamppb.Timestamp) {
+}
+
 // PublishWithUUID will JSON marshal and publish this on a publisher with the given UUID
 func (e *NotifyEvent) PublishWithUUID(ctx context.Context, publisher message.Publisher, uuid string) error {
 	e.injectMessageID(uuid)
+	e.injectPublishTimestamp(timestamppb.Now())
 
 	if v, ok := interface{}(e).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
@@ -77,9 +83,15 @@ func (e *CustomTopicEvent) injectMessageID(uuid string) {
 	e.MessageID = uuid
 }
 
+// injectPublishTimestamp will inject the given "published_at" timestamp into all fields marked with the `inject_publish_time` option
+func (e *CustomTopicEvent) injectPublishTimestamp(publishedAt *timestamppb.Timestamp) {
+	e.GeneratedAt = publishedAt
+}
+
 // PublishWithUUID will JSON marshal and publish this on a publisher with the given UUID
 func (e *CustomTopicEvent) PublishWithUUID(ctx context.Context, publisher message.Publisher, uuid string) error {
 	e.injectMessageID(uuid)
+	e.injectPublishTimestamp(timestamppb.Now())
 
 	payload, err := protojson.Marshal(e)
 	if err != nil {
@@ -129,9 +141,15 @@ func (e *AttributeEvent) injectMessageID(uuid string) {
 	e.MessageID = uuid
 }
 
+// injectPublishTimestamp will inject the given "published_at" timestamp into all fields marked with the `inject_publish_time` option
+func (e *AttributeEvent) injectPublishTimestamp(publishedAt *timestamppb.Timestamp) {
+	e.GeneratedAt = publishedAt
+}
+
 // PublishWithUUID will JSON marshal and publish this on a publisher with the given UUID
 func (e *AttributeEvent) PublishWithUUID(ctx context.Context, publisher message.Publisher, uuid string) error {
 	e.injectMessageID(uuid)
+	e.injectPublishTimestamp(timestamppb.Now())
 
 	if v, ok := interface{}(e).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
