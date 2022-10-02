@@ -5,9 +5,15 @@ option go_package = "github.com/voi-oss/protoc-gen-event/pkg/options;options";
 
 import "google/protobuf/descriptor.proto";
 
+// EventOption represents all event-level options supported by the plugin.
 message EventOption {
+  // topic_names explicitly sets the name of the topic to publish the event to.
   string topic_name = 1;
+
+  // skip indicates that the code generation process should ignore this event.
   bool skip = 2;
+
+  // no_message_validation indicates that the validation done automatically at publication time should be disabled.
   bool no_message_validation = 3;
 }
 
@@ -17,13 +23,21 @@ extend google.protobuf.MessageOptions {
 
 // PIICategory describes the type of PII contained in a field.
 enum PIICategory {
+  // the field does not contain PII
   PII_NONE = 0;
+  // unspecified type of PII
   PII_OTHER = 1;
+  // first name, last name, ...
   PII_NAME = 2;
+  // e-mail address
   PII_EMAIL = 3;
+  // telephone number
   PII_PHONE = 4;
+  // IP address
   PII_IP = 5;
+  // some kind of device ID (ex: mobile phone identifier)
   PII_DEVICE_ID = 6;
+  // some kind of document number (ex: driving license number, passport number, credit card fingerprint, ...)
   PII_DOCUMENT_NUMBER = 7;
 }
 
