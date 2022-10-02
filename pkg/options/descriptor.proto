@@ -41,6 +41,7 @@ message FieldOption {
   bool inject_message_id = 3;
   PIICategory pii = 4;
   AccountType account_id = 5;
+  bool inject_publish_time = 6;
 }
 
 extend google.protobuf.FieldOptions {

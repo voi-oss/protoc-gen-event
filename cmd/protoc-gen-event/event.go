@@ -13,10 +13,11 @@ import (
 )
 
 const (
-	contextPkg   = protogen.GoImportPath("context")
-	messagePkg   = protogen.GoImportPath("github.com/ThreeDotsLabs/watermill/message")
-	watermillPkg = protogen.GoImportPath("github.com/ThreeDotsLabs/watermill")
-	protoJSONPkg = protogen.GoImportPath("google.golang.org/protobuf/encoding/protojson")
+	contextPkg     = protogen.GoImportPath("context")
+	messagePkg     = protogen.GoImportPath("github.com/ThreeDotsLabs/watermill/message")
+	watermillPkg   = protogen.GoImportPath("github.com/ThreeDotsLabs/watermill")
+	protoJSONPkg   = protogen.GoImportPath("google.golang.org/protobuf/encoding/protojson")
+	timestampPbPkg = protogen.GoImportPath("google.golang.org/protobuf/types/known/timestamppb")
 )
 
 type requiredField struct {
@@ -78,9 +79,10 @@ type messageOptions struct {
 }
 
 type fieldOptions struct {
-	isMetadata      bool
-	name            string
-	injectMessageID bool
+	isMetadata        bool
+	name              string
+	injectMessageID   bool
+	injectPublishTime bool
 }
 
 // fileHasEvents checks if the given file has events that need to be generated.
@@ -166,12 +168,29 @@ func generateEvent(g *protogen.GeneratedFile, message *protogen.Message, config 
 
 	g.P()
 
+	g.P("// injectPublishTimestamp will inject the given \"published_at\" timestamp into all fields marked with the `inject_publish_time` option")
+	g.Annotate(message.GoIdent.String()+".injectPublishTimestamp", message.Location)
+	g.P("func (e *", message.GoIdent, ") injectPublishTimestamp(publishedAt *", g.QualifiedGoIdent(timestampPbPkg.Ident("Timestamp")), ") {")
+	for _, field := range message.Fields {
+		fo := getFieldOptions(field)
+		if !fo.injectPublishTime {
+			continue
+		}
+		g.P("e.", fo.name, " = publishedAt")
+	}
+	g.P("}")
+
+	g.P()
+
 	g.P("// PublishWithUUID will JSON marshal and publish this on a publisher with the given UUID")
 	g.Annotate(message.GoIdent.String()+".PublishWithUUID", message.Location)
 	g.P("func (e *", message.GoIdent, ") PublishWithUUID(ctx ", g.QualifiedGoIdent(contextPkg.Ident("Context")), ", publisher ", g.QualifiedGoIdent(messagePkg.Ident("Publisher")), ", uuid string) error {")
 
 	// messageID injection
 	g.P("e.injectMessageID(uuid)")
+
+	// publish timestamp injection
+	g.P("e.injectPublishTimestamp(", g.QualifiedGoIdent(timestampPbPkg.Ident("Now")), "())")
 	g.P()
 
 	// if available: message validation
@@ -274,15 +293,13 @@ func getFieldOptions(field *protogen.Field) fieldOptions {
 	msgOpts := field.Desc.Options().(*descriptorpb.FieldOptions)
 	opts := proto.GetExtension(msgOpts, options.E_Field).(*options.FieldOption)
 
-	if opts.GetIsMetadata() {
-		fo.isMetadata = opts.GetIsMetadata()
-	}
-	if opts.GetInjectMessageId() {
-		fo.injectMessageID = opts.GetInjectMessageId()
-	}
 	if opts.GetName() != "" {
 		fo.name = opts.GetName()
 	}
+
+	fo.isMetadata = opts.GetIsMetadata()
+	fo.injectMessageID = opts.GetInjectMessageId()
+	fo.injectPublishTime = opts.GetInjectPublishTime()
 
 	return fo
 }

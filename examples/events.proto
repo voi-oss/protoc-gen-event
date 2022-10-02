@@ -22,7 +22,7 @@ message CustomTopicEvent {
   map<string, string> data = 2;
 
   string messageID = 3 [(voi.event.field).inject_message_id = true];
-  google.protobuf.Timestamp generatedAt = 4;
+  google.protobuf.Timestamp generatedAt = 4 [(voi.event.field).inject_publish_time = true];
 }
 
 message NotAnEvent {
@@ -38,5 +38,5 @@ message AttributeEvent {
   map<string, string> data = 3;
 
   string messageID = 4 [(voi.event.field).inject_message_id = true];
-  google.protobuf.Timestamp generatedAt = 5;
+  google.protobuf.Timestamp generatedAt = 5 [(voi.event.field).inject_publish_time = true];
 }
