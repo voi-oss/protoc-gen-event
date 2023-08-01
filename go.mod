@@ -1,11 +1,11 @@
 module github.com/voi-oss/protoc-gen-event
 
-go 1.18
+go 1.20
 
 require (
-	github.com/ThreeDotsLabs/watermill v1.2.0-rc.11
-	github.com/stretchr/testify v1.8.0
-	google.golang.org/protobuf v1.28.1
+	github.com/ThreeDotsLabs/watermill v1.3.2
+	github.com/stretchr/testify v1.8.4
+	google.golang.org/protobuf v1.31.0
 )
 
 require (
