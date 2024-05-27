@@ -2,6 +2,8 @@
 
 buildGoModule rec {
   pname = "protoc-gen-event";
+  version = "1.0.0";
+  vendorHash = "sha256-nPf1IQG4aWlbVQMe9GMOGo/QZvmrz2TF7eMINqvzQOc=";
 
   src = lib.cleanSource ./.;
   ldflags = [
@@ -12,6 +14,5 @@ buildGoModule rec {
   meta = with lib; {
     description = "protoc-gen-event is a tool that allows to generate events structs from protobuf interfaces";
   };
-
-  doCheck = false; # it takes ages to run the tests
+  doCheck = false;
 }
