@@ -68,8 +68,9 @@ func (fields requiredFields) EnsureCompliance(message *protogen.Message) error {
 }
 
 type GeneratorConfig struct {
-	Suffix         string
-	RequiredFields requiredFields
+	Suffix          string
+	RequiredFields  requiredFields
+	EmitUnpopulated bool
 }
 
 type messageOptions struct {
@@ -204,7 +205,11 @@ func generateEvent(g *protogen.GeneratedFile, message *protogen.Message, config 
 	}
 
 	// payload marshalling
-	g.P("payload, err := ", g.QualifiedGoIdent(protoJSONPkg.Ident("Marshal")), "(e)")
+	if config.EmitUnpopulated {
+		g.P("payload, err := ", g.QualifiedGoIdent(protoJSONPkg.Ident("MarshalOptions")), "{EmitUnpopulated: true}.Marshal(e)")
+	} else {
+		g.P("payload, err := ", g.QualifiedGoIdent(protoJSONPkg.Ident("Marshal")), "(e)")
+	}
 	g.P("if err != nil {")
 	g.P("return err")
 	g.P("}")

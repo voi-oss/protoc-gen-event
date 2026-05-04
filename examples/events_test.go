@@ -43,6 +43,29 @@ func TestSimple(t *testing.T) {
 	handler.Handle(<-messages)
 }
 
+// TestDefaultMarshal_ZeroValueFieldsOmitted verifies that with the default generator
+// settings (emitUnpopulated=false), proto3 zero-value fields are absent from the
+// published JSON payload. When the generator is invoked with emitUnpopulated=true
+// those fields are always present in the output.
+func TestDefaultMarshal_ZeroValueFieldsOmitted(t *testing.T) {
+	r := require.New(t)
+
+	ne := examples.NotifyEvent{} // AccountID is zero value ""
+
+	logger := watermill.NewStdLogger(false, false)
+	publisher := gochannel.NewGoChannel(gochannel.Config{OutputChannelBuffer: 10}, logger)
+	ctx := context.Background()
+
+	topic := examples.NotifyEventHandler(nil).Topic()
+	messages, err := publisher.Subscribe(ctx, topic)
+	r.NoError(err)
+
+	r.NoError(ne.Publish(ctx, publisher))
+
+	msg := <-messages
+	r.NotContains(string(msg.Payload), `"accountID"`, "zero-value fields must be absent from JSON payload with default generator settings")
+}
+
 func TestSimpleAttribute(t *testing.T) {
 	r := require.New(t)
 
