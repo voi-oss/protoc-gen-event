@@ -27,7 +27,7 @@ func TestSimple(t *testing.T) {
 		OutputChannelBuffer: 10,
 	}, logger)
 
-	handler := examples.NotifyEventHandler(func(pe *examples.NotifyEvent, m *message.Message) error {
+	handler := examples.NotifyEventHandler(func(pe *examples.NotifyEvent, _ *message.Message) error {
 		r.Equal(pe.AccountID, ne.AccountID)
 		return nil
 	})
@@ -40,7 +40,7 @@ func TestSimple(t *testing.T) {
 		return
 	}
 
-	handler.Handle(<-messages)
+	r.NoError(handler.Handle(<-messages))
 }
 
 // TestDefaultMarshal_ZeroValueFieldsOmitted verifies that with the default generator
@@ -98,5 +98,5 @@ func TestSimpleAttribute(t *testing.T) {
 		return
 	}
 
-	handler.Handle(<-messages)
+	r.NoError(handler.Handle(<-messages))
 }

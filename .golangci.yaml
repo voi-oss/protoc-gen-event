@@ -1,27 +1,19 @@
+version: "2"
+
 linters:
   enable:
-    - deadcode
     - errcheck
-    - gosimple
     - govet
     - ineffassign
     - staticcheck
-    - structcheck
-    - typecheck
     - unused
-    - varcheck
-    - depguard
     - dupl
     - gochecknoinits
     - gocritic
     - gocyclo
-    - gofmt
-    - goimports
     - misspell
     - nakedret
     - prealloc
-    - exportloopref
-    - stylecheck
     - unconvert
     - unparam
     - gosec
@@ -29,9 +21,12 @@ linters:
     - gochecknoglobals
   disable:
     - lll
-    - maligned
     - goconst
+  settings:
+    errcheck:
+      ignore: fmt:.*
 
-linters-settings:
-  errcheck:
-    ignore: fmt:.*
+formatters:
+  enable:
+    - gofmt
+    - goimports
