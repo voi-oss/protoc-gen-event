@@ -1,3 +1,4 @@
+// Package main implements the protoc-gen-event protoc plugin.
 package main
 
 import (
@@ -68,8 +69,9 @@ func (fields requiredFields) EnsureCompliance(message *protogen.Message) error {
 }
 
 type GeneratorConfig struct {
-	Suffix         string
-	RequiredFields requiredFields
+	Suffix          string
+	RequiredFields  requiredFields
+	EmitUnpopulated bool
 }
 
 type messageOptions struct {
@@ -147,7 +149,7 @@ func generateEvent(g *protogen.GeneratedFile, message *protogen.Message, config 
 	}
 
 	g.P("// Publish will JSON marshal and publish this on a publisher")
-	g.Annotate(message.GoIdent.String()+".Publish", message.Location)
+	g.AnnotateSymbol(message.GoIdent.String()+".Publish", protogen.Annotation{Location: message.Location})
 	g.P("func (e *", message.GoIdent, ") Publish(ctx ", g.QualifiedGoIdent(contextPkg.Ident("Context")), ", publisher ", g.QualifiedGoIdent(messagePkg.Ident("Publisher")), ") error {")
 	g.P("return e.PublishWithUUID(ctx, publisher, ", watermillPkg.Ident("NewUUID"), "()", ")")
 	g.P("}")
@@ -155,7 +157,7 @@ func generateEvent(g *protogen.GeneratedFile, message *protogen.Message, config 
 	g.P()
 
 	g.P("// injectMessageID will inject the given message UUID into all fields marked with the `inject_message_id` option")
-	g.Annotate(message.GoIdent.String()+".injectMessageID", message.Location)
+	g.AnnotateSymbol(message.GoIdent.String()+".injectMessageID", protogen.Annotation{Location: message.Location})
 	g.P("func (e *", message.GoIdent, ") injectMessageID(uuid string) {")
 	for _, field := range message.Fields {
 		fo := getFieldOptions(field)
@@ -169,7 +171,7 @@ func generateEvent(g *protogen.GeneratedFile, message *protogen.Message, config 
 	g.P()
 
 	g.P("// injectPublishTimestamp will inject the given \"published_at\" timestamp into all fields marked with the `inject_publish_time` option")
-	g.Annotate(message.GoIdent.String()+".injectPublishTimestamp", message.Location)
+	g.AnnotateSymbol(message.GoIdent.String()+".injectPublishTimestamp", protogen.Annotation{Location: message.Location})
 	g.P("func (e *", message.GoIdent, ") injectPublishTimestamp(publishedAt *", g.QualifiedGoIdent(timestampPbPkg.Ident("Timestamp")), ") {")
 	for _, field := range message.Fields {
 		fo := getFieldOptions(field)
@@ -183,7 +185,7 @@ func generateEvent(g *protogen.GeneratedFile, message *protogen.Message, config 
 	g.P()
 
 	g.P("// PublishWithUUID will JSON marshal and publish this on a publisher with the given UUID")
-	g.Annotate(message.GoIdent.String()+".PublishWithUUID", message.Location)
+	g.AnnotateSymbol(message.GoIdent.String()+".PublishWithUUID", protogen.Annotation{Location: message.Location})
 	g.P("func (e *", message.GoIdent, ") PublishWithUUID(ctx ", g.QualifiedGoIdent(contextPkg.Ident("Context")), ", publisher ", g.QualifiedGoIdent(messagePkg.Ident("Publisher")), ", uuid string) error {")
 
 	// messageID injection
@@ -204,7 +206,11 @@ func generateEvent(g *protogen.GeneratedFile, message *protogen.Message, config 
 	}
 
 	// payload marshalling
-	g.P("payload, err := ", g.QualifiedGoIdent(protoJSONPkg.Ident("Marshal")), "(e)")
+	if config.EmitUnpopulated {
+		g.P("payload, err := ", g.QualifiedGoIdent(protoJSONPkg.Ident("MarshalOptions")), "{EmitUnpopulated: true}.Marshal(e)")
+	} else {
+		g.P("payload, err := ", g.QualifiedGoIdent(protoJSONPkg.Ident("Marshal")), "(e)")
+	}
 	g.P("if err != nil {")
 	g.P("return err")
 	g.P("}")

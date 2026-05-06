@@ -19,6 +19,7 @@ func main() {
 	var requiredFields string
 	flags.StringVar(&config.Suffix, "suffixMatch", config.Suffix, "Suffix required for a message to be handled as an event. Set to empty to generate for all messages.")
 	flags.StringVar(&requiredFields, "requiredFields", "", "Mandatory fields in events. Example: 'SomeFieldName@string+EmittedAt@google.protobuf.Timestamp'")
+	flags.BoolVar(&config.EmitUnpopulated, "emitUnpopulated", false, "When true, proto3 fields with default values (false, 0, \"\") are included in the JSON payload instead of being omitted.")
 
 	protogen.Options{
 		ParamFunc: flags.Set,
